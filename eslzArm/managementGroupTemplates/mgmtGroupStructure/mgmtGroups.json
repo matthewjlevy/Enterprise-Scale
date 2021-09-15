@@ -8,7 +8,7 @@
                 "description": "Provide prefix for the management group structure."
             }
         },
-        "platformMgs": {
+        "sharedMgs": {
             "type": "array",
             "defaultValue": [
                 "management",
@@ -16,10 +16,10 @@
                 "identity"
             ],
             "metadata": {
-                "description": "Management groups for platform specific purposes, such as management, networking, identity etc."
+                "description": "Management groups for shared specific purposes, such as management, networking, identity etc."
             }
         },
-        "landingZoneMgs": {
+        "prodMgs": {
             "type": "array",
             "defaultValue": [
                 "online",
@@ -32,9 +32,9 @@
     },
     "variables": {
         "enterpriseScaleManagementGroups": {
-            "platform": "[concat(parameters('topLevelManagementGroupPrefix'), '-', 'platform')]",
-            "landingZone": "[concat(parameters('topLevelManagementGroupPrefix'), '-', 'landingzones')]",
-            "decommissioned": "[concat(parameters('topLevelManagementGroupPrefix'), '-', 'decommissioned')]",
+            "shared": "Mgmt-IT-SharedServices",
+            "prod": "Mgmt-Prod",
+            "dev": "Mgmt-NonProd",
             "sandboxes": "[concat(parameters('topLevelManagementGroupPrefix'), '-', 'sandboxes')]"
         }
     },
@@ -48,16 +48,16 @@
             "properties": {}
         },
         {
-            // Create management group for platform management groups
+            // Create management group for shared management groups
             "type": "Microsoft.Management/managementGroups",
             "apiVersion": "2020-05-01",
             "scope": "/",
-            "name": "[variables('enterpriseScaleManagementGroups').platform]",
+            "name": "[variables('enterpriseScaleManagementGroups').shared]",
             "dependsOn": [
                 "[tenantResourceId('Microsoft.Management/managementGroups/', parameters('topLevelManagementGroupPrefix'))]"
             ],
             "properties": {
-                "displayName": "[variables('enterpriseScaleManagementGroups').platform]",
+                "displayName": "[variables('enterpriseScaleManagementGroups').shared]",
                 "details": {
                     "parent": {
                     "id": "[tenantResourceId('Microsoft.Management/managementGroups/', parameters('topLevelManagementGroupPrefix'))]"
@@ -70,12 +70,12 @@
             "type": "Microsoft.Management/managementGroups",
             "apiVersion": "2020-05-01",
             "scope": "/",
-            "name": "[variables('enterpriseScaleManagementGroups').landingZone]",
+            "name": "[variables('enterpriseScaleManagementGroups').prod]",
             "dependsOn": [
                 "[tenantResourceId('Microsoft.Management/managementGroups/', parameters('topLevelManagementGroupPrefix'))]"
             ],
             "properties": {
-                "displayName": "[variables('enterpriseScaleManagementGroups').landingZone]",
+                "displayName": "[variables('enterpriseScaleManagementGroups').prod]",
                 "details": {
                     "parent": {
                     "id": "[tenantResourceId('Microsoft.Management/managementGroups/', parameters('topLevelManagementGroupPrefix'))]"
@@ -102,16 +102,16 @@
             }
         },         
         {
-            // Create management group for decommissioned subscriptions
+            // Create management group for dev subscriptions
             "type": "Microsoft.Management/managementGroups",
             "apiVersion": "2020-05-01",
             "scope": "/",
-            "name": "[variables('enterpriseScaleManagementGroups').decommissioned]",
+            "name": "[variables('enterpriseScaleManagementGroups').dev]",
             "dependsOn": [
                 "[tenantResourceId('Microsoft.Management/managementGroups/', parameters('topLevelManagementGroupPrefix'))]"
             ],
             "properties": {
-                "displayName": "[variables('enterpriseScaleManagementGroups').decommissioned]",
+                "displayName": "[variables('enterpriseScaleManagementGroups').dev]",
                 "details": {
                     "parent": {
                     "id": "[tenantResourceId('Microsoft.Management/managementGroups/', parameters('topLevelManagementGroupPrefix'))]"
@@ -120,47 +120,47 @@
             }
         },        
         {
-            // Create child management groups for platform resources
-            "condition": "[not(empty(parameters('platformMgs')))]",
+            // Create child management groups for shared resources
+            "condition": "[not(empty(parameters('sharedMgs')))]",
             "type": "Microsoft.Management/managementGroups",
             "apiVersion": "2020-05-01",
             "scope": "/",
-            "name": "[concat(parameters('topLevelManagementGroupPrefix'), '-', parameters('platformMgs')[copyIndex()])]",
+            "name": "[concat(parameters('topLevelManagementGroupPrefix'), '-', parameters('sharedMgs')[copyIndex()])]",
             "dependsOn": [
-                "[tenantResourceId('Microsoft.Management/managementGroups', variables('enterpriseScaleManagementGroups').platform)]"
+                "[tenantResourceId('Microsoft.Management/managementGroups', variables('enterpriseScaleManagementGroups').shared)]"
             ],
             "copy": {
-                "name": "platformMgCopy",
-                "count": "[length(parameters('platformMgs'))]"
+                "name": "sharedMgCopy",
+                "count": "[length(parameters('sharedMgs'))]"
             },
             "properties": {
-                "displayName": "[concat(parameters('topLevelManagementGroupPrefix'), '-', parameters('platformMgs')[copyIndex()])]",
+                "displayName": "[concat(parameters('topLevelManagementGroupPrefix'), '-', parameters('sharedMgs')[copyIndex()])]",
                 "details": {
                     "parent": {
-                        "id": "[tenantResourceId('Microsoft.Management/managementGroups/', variables('enterpriseScaleManagementGroups').platform)]"
+                        "id": "[tenantResourceId('Microsoft.Management/managementGroups/', variables('enterpriseScaleManagementGroups').shared)]"
                     }
                 }
             }
         },
         {
             // Create child management groups for landing zones
-            "condition": "[not(empty(parameters('landingZoneMgs')))]",
+            "condition": "[not(empty(parameters('prodMgs')))]",
             "type": "Microsoft.Management/managementGroups",
             "apiVersion": "2020-05-01",
             "scope": "/",
-            "name": "[concat(parameters('topLevelManagementGroupPrefix'), '-', parameters('landingZoneMgs')[copyIndex()])]",
+            "name": "[concat(parameters('topLevelManagementGroupPrefix'), '-', parameters('prodMgs')[copyIndex()])]",
             "dependsOn": [
-                "[tenantResourceId('Microsoft.Management/managementGroups/', variables('enterpriseScaleManagementGroups').landingZone)]"
+                "[tenantResourceId('Microsoft.Management/managementGroups/', variables('enterpriseScaleManagementGroups').prod)]"
             ],
             "copy": {
                 "name": "lzMgCopy",
-                "count": "[length(parameters('landingZoneMgs'))]"
+                "count": "[length(parameters('prodMgs'))]"
             },
             "properties": {
-                "displayName": "[concat(parameters('topLevelManagementGroupPrefix'), '-', parameters('landingZoneMgs')[copyIndex()])]",
+                "displayName": "[concat(parameters('topLevelManagementGroupPrefix'), '-', parameters('prodMgs')[copyIndex()])]",
                 "details": {
                     "parent": {
-                        "id": "[tenantResourceId('Microsoft.Management/managementGroups/', variables('enterpriseScaleManagementGroups').landingZone)]"
+                        "id": "[tenantResourceId('Microsoft.Management/managementGroups/', variables('enterpriseScaleManagementGroups').prod)]"
                     }
                 }
             }
